@@ -14,6 +14,15 @@ class UnsafeNode(Exception):
 
 class Evaler(object):
     ALLOWED_NODES = {
+        # extra
+        _ast.Assign,
+        _ast.Store,
+        _ast.If,
+        _ast.AugAssign,
+        _ast.Module,
+        _ast.For,
+        _ast.Raise,
+        # old
         _ast.Module,
         # math
         _ast.Add,
@@ -62,6 +71,21 @@ class Evaler(object):
         self.safe_funcs = {func.__name__: func for func in safe_funcs}
 
         self.boolean_builtins = {"True": True, "False": False}
+
+    def safe_exec(self, data, variables=None):
+        unsafe = self.expr_is_unsafe(data)
+
+        if not unsafe:
+            return self.raw_exec(data, variables)
+        else:
+            raise NotSafeExpression(data, unsafe)
+
+    def raw_exec(self, data, variables=None):
+        locals = dict(self.boolean_builtins)
+        if variables is not None:
+            locals.update(variables)
+        # code = compile(data)
+        exec(data, {'__builtins__': self.safe_funcs}, locals)
 
     def eval(self, expr, variables=None):
         unsafe = self.expr_is_unsafe(expr)
